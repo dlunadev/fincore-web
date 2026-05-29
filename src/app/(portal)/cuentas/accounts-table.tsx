@@ -1,24 +1,26 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { Pagination } from '@/components/ui/pagination';
-import type { AccountsResult } from './use-accounts';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import type { Account } from '@/sdk';
 
 interface AccountsTableProps {
-  promise:      Promise<AccountsResult>;
-  is_pending:   boolean;
-  page:         number;
-  confirmId:    string | null;
-  deactivating: boolean;
+  accounts:        Account[];
+  total:           number;
+  total_pages:     number;
+  page:            number;
+  is_loading:      boolean;
+  confirmId:       string | null;
+  deactivating:    boolean;
   deactivateError: string | null;
-  onPage:       (page: number) => void;
-  onDeactivate: (id: string) => void;
-  onConfirm:    () => void;
-  onCancel:     () => void;
+  onPage:          (page: number) => void;
+  onDeactivate:    (id: string) => void;
+  onConfirm:       () => void;
+  onCancel:        () => void;
 }
 
 function formatBalance(amount: number, currency: string) {
@@ -28,18 +30,16 @@ function formatBalance(amount: number, currency: string) {
 }
 
 export function AccountsTable({
-  promise, is_pending, page,
+  accounts, total, total_pages, page, is_loading,
   confirmId, deactivating, deactivateError,
   onPage, onDeactivate, onConfirm, onCancel,
 }: AccountsTableProps) {
-  const result = use(promise);
-
-  if (!result.ok) return <ErrorAlert message={result.error} />;
-
-  const { data: accounts, total, total_pages } = result.data;
+  if (is_loading && accounts.length === 0) {
+    return <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>;
+  }
 
   return (
-    <div className={['flex flex-col gap-4 transition-opacity', is_pending ? 'opacity-60' : ''].join(' ')}>
+    <div className={['flex flex-col gap-4 transition-opacity', is_loading ? 'opacity-60' : ''].join(' ')}>
 
       <ErrorAlert message={deactivateError} />
 

@@ -77,14 +77,15 @@ export function useUpdateAccount(id: string) {
 }
 
 // ── Deactivate ───────────────────────────────────────────────────
-export function useDeactivateAccount(id: string) {
+export function useDeactivateAccount() {
   const { trigger, isMutating, error } = useSWRMutation(
-    ['accounts/deactivate', id],
-    () => fincore.accounts.deactivate.execute(id),
+    'accounts/deactivate',
+    (_key: string, { arg }: { arg: string }) =>
+      fincore.accounts.deactivate.execute(arg),
   );
 
   return {
-    deactivate: trigger,
+    deactivate: (id: string) => trigger(id),
     is_loading: isMutating,
     error:      error?.message ?? null,
   };

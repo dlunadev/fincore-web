@@ -2,6 +2,7 @@ import type { IAccountPort, GetAccountsParams } from '../../domain/ports/account
 import type { Account, CreateAccountDto, UpdateAccountDto } from '../../domain/models/account';
 import type { PagedResult } from '../../domain/models/pagination';
 import type { HttpClient } from './http-client';
+import { mapPagedResult } from './paged-result-mapper';
 
 export class AccountHttpAdapter implements IAccountPort {
   constructor(private readonly http: HttpClient) {}
@@ -12,7 +13,7 @@ export class AccountHttpAdapter implements IAccountPort {
       pageSize:  String(page_size),
       ...(search ? { search } : {}),
     });
-    return this.http.get<PagedResult<Account>>(`/api/accounts?${params}`);
+    return this.http.get(`/api/accounts?${params}`).then(mapPagedResult<Account>);
   }
 
   getById(id: string): Promise<Account> {

@@ -3,6 +3,7 @@ import type { Transaction, CreateTransactionDto, GetTransactionsParams, UpdateTr
 import type { AuditLog } from '../../domain/models/audit-log';
 import type { PagedResult } from '../../domain/models/pagination';
 import type { HttpClient } from './http-client';
+import { mapPagedResult } from './paged-result-mapper';
 
 export class TransactionHttpAdapter implements ITransactionPort {
   constructor(private readonly http: HttpClient) {}
@@ -16,7 +17,7 @@ export class TransactionHttpAdapter implements ITransactionPort {
       ...(from   ? { from }   : {}),
       ...(to     ? { to }     : {}),
     });
-    return this.http.get<PagedResult<Transaction>>(`/api/transactions?${params}`);
+    return this.http.get(`/api/transactions?${params}`).then(mapPagedResult<Transaction>);
   }
 
   getById(id: string): Promise<Transaction> {

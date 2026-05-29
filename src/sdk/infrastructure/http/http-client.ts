@@ -11,11 +11,14 @@ export class SdkError extends Error {
 }
 
 const STATUS_MESSAGES: Record<number, string> = {
-  400: 'Solicitud inválida.',
-  401: 'No autorizado. Por favor inicie sesión.',
-  403: 'Acceso denegado.',
-  404: 'Recurso no encontrado.',
-  409: 'Conflicto: el recurso ya existe.',
+  400: 'Los datos enviados no son válidos.',
+  401: 'Tu sesión expiró. Por favor volvé a iniciar sesión.',
+  403: 'No tenés permisos para realizar esta acción.',
+  404: 'El recurso solicitado no existe.',
+  409: 'Ya existe un registro con esos datos.',
+  422: 'Los datos ingresados no cumplen los requisitos.',
+  500: 'Error interno del servidor. Intentá de nuevo en unos momentos.',
+  503: 'El servicio no está disponible en este momento. Intentá más tarde.',
 };
 
 export class HttpClient {
@@ -48,34 +51,39 @@ export class HttpClient {
     return body as T;
   }
 
+  private async request<T>(path: string, init: RequestInit): Promise<T> {
+    return fetch(`${this.baseUrl}${path}`, init)
+      .catch(() => {
+        throw new SdkError('No se pudo conectar al servidor. Verificá tu conexión.', 0);
+      })
+      .then((r) => this.handleResponse<T>(r));
+  }
+
   get<T>(path: string): Promise<T> {
-    return fetch(`${this.baseUrl}${path}`, {
-      method: 'GET',
-      headers: this.buildHeaders(),
-    }).then((r) => this.handleResponse<T>(r));
+    return this.request<T>(path, { method: 'GET', headers: this.buildHeaders() });
   }
 
   post<T>(path: string, body: unknown): Promise<T> {
-    return fetch(`${this.baseUrl}${path}`, {
+    return this.request<T>(path, {
       method: 'POST',
       headers: this.buildHeaders(),
       body: JSON.stringify(body),
-    }).then((r) => this.handleResponse<T>(r));
+    });
   }
 
   put<T>(path: string, body: unknown): Promise<T> {
-    return fetch(`${this.baseUrl}${path}`, {
+    return this.request<T>(path, {
       method: 'PUT',
       headers: this.buildHeaders(),
       body: JSON.stringify(body),
-    }).then((r) => this.handleResponse<T>(r));
+    });
   }
 
   patch<T>(path: string, body?: unknown): Promise<T> {
-    return fetch(`${this.baseUrl}${path}`, {
+    return this.request<T>(path, {
       method: 'PATCH',
       headers: this.buildHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    }).then((r) => this.handleResponse<T>(r));
+    });
   }
 }

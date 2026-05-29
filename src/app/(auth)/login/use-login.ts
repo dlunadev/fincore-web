@@ -32,7 +32,10 @@ export function useLogin() {
       login(response.token, response.user);
       router.replace(searchParams.get('from') ?? '/cuentas');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ocurrió un error inesperado. Intentá de nuevo.');
+      if (err instanceof ApiError && err.status === 401)
+        setError('Usuario o contraseña inválido.');
+      else
+        setError(err instanceof ApiError ? err.message : 'Ocurrió un error inesperado. Intentá de nuevo.');
     }
   });
 

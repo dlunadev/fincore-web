@@ -29,7 +29,7 @@ export function useLogin() {
     setError(null);
     try {
       const response = await authService.login(data);
-      login(response.token, response.user);
+      login(response.token, { id: '', email: response.email, name: response.name });
       router.replace(searchParams.get('from') ?? '/cuentas');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401)

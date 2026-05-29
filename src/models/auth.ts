@@ -11,6 +11,6 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  expires_at: string;
-  user: AuthUser;
+  name:  string;
+  email: string;
 }

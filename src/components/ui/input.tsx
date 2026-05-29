@@ -7,9 +7,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, id, className = '', ...props }, ref) => (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-gray-700">
+        <label htmlFor={id} className="text-[13px] font-medium text-[#1d1d1f]">
           {label}
         </label>
       )}
@@ -17,16 +17,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         id={id}
         className={[
-          'h-10 w-full rounded-lg border px-3 text-sm text-gray-900',
-          'placeholder:text-gray-400 transition-colors',
-          'focus:outline-none focus:ring-2 focus:border-transparent focus:ring-blue-500',
-          'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
-          error ? 'border-red-400 focus:ring-red-400' : 'border-gray-300',
+          'h-10 w-full rounded-xl border bg-white px-3.5 text-[14px] text-[#1d1d1f]',
+          'placeholder:text-[#aeaeb2] outline-none transition-all duration-200',
+          'focus:ring-3 focus:ring-[#0071e3]/15 focus:border-[#0071e3]/60',
+          'disabled:cursor-not-allowed disabled:bg-[#f5f5f7] disabled:text-[#aeaeb2]',
+          error
+            ? 'border-[#ff3b30]/60 ring-2 ring-[#ff3b30]/10'
+            : 'border-black/[0.1] hover:border-black/[0.18]',
           className,
         ].join(' ')}
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[#ff3b30]">{error}</p>}
     </div>
   ),
 );

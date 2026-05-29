@@ -1,15 +1,7 @@
-'use client';
-
 import Link from 'next/link';
-import { Suspense, useState } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CreateTransactionForm } from './create-transaction-form';
-import { fetchActiveAccounts } from './use-create-transaction';
-import type { AccountsForSelectResult } from './use-create-transaction';
 
 export default function NuevaTransaccionPage() {
-  const [promise] = useState<Promise<AccountsForSelectResult>>(() => fetchActiveAccounts());
-
   return (
     <div className="mx-auto max-w-lg">
 
@@ -22,9 +14,7 @@ export default function NuevaTransaccionPage() {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <Suspense fallback={<div className="flex justify-center py-10"><LoadingSpinner size="lg" /></div>}>
-          <CreateTransactionForm promise={promise} />
-        </Suspense>
+        <CreateTransactionForm />
       </div>
 
     </div>

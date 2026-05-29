@@ -9,12 +9,13 @@ interface BackendPagedResult<T> {
   totalPages: number;
 }
 
-export function mapPagedResult<T>(raw: BackendPagedResult<T>): PagedResult<T> {
+export function mapPagedResult<T>(raw: unknown): PagedResult<T> {
+  const r = raw as BackendPagedResult<T>;
   return {
-    data:        raw.items      ?? [],
-    total:       raw.totalCount ?? 0,
-    page:        raw.page       ?? 1,
-    page_size:   raw.pageSize   ?? 10,
-    total_pages: raw.totalPages ?? 1,
+    data:        r.items      ?? [],
+    total:       r.totalCount ?? 0,
+    page:        r.page       ?? 1,
+    page_size:   r.pageSize   ?? 10,
+    total_pages: r.totalPages ?? 1,
   };
 }

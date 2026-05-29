@@ -1,14 +1,28 @@
 'use client';
 
-import Link from 'next/link';
-import { use } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ErrorAlert } from '@/components/ui/error-alert';
-import { useEditAccount, useDeactivateAccount } from './use-edit-account';
-import type { AccountDetailResult } from './use-edit-account';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import {
+  useAccount,
+  useUpdateAccount,
+  useDeactivateAccount,
+} from '@/hooks/accounts/use-accounts';
+
+const schema = z.object({
+  holder_name: z.string().min(1, 'El titular es requerido'),
+  currency:    z.enum(['PEN', 'USD'], { error: 'Seleccione una moneda' }),
+});
+
+type EditAccountFormData = z.infer<typeof schema>;
 
 function formatBalance(amount: number, currency: string) {
   return new Intl.NumberFormat('es-PE', {
@@ -16,24 +30,43 @@ function formatBalance(amount: number, currency: string) {
   }).format(amount);
 }
 
-interface EditAccountFormProps {
-  promise: Promise<AccountDetailResult>;
-}
+export function EditAccountForm({ id, onClose, onSuccess }: { id: string; onClose?: () => void; onSuccess?: () => void }) {
+  const router  = useRouter();
+  const { account, is_loading, error } = useAccount(id);
+  const { update, is_loading: updating, error: updateError } = useUpdateAccount(id);
+  const { deactivate, is_loading: deactivating, error: deactivateError } = useDeactivateAccount();
+  const [showConfirm, setShowConfirm] = useState(false);
 
-export function EditAccountForm({ promise }: EditAccountFormProps) {
-  const result = use(promise);
+  const form = useForm<EditAccountFormData>({
+    resolver: zodResolver(schema),
+    values: account ? { holder_name: account.holder_name, currency: account.currency as 'PEN' | 'USD' } : undefined,
+  });
+  const { register, formState: { errors, isSubmitting } } = form;
 
-  if (!result.ok) return <ErrorAlert message={result.error} />;
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await update(data);
+      if (onSuccess) { onSuccess(); } else { router.replace('/cuentas'); }
+    } catch {
+      // error shown via updateError
+    }
+  });
 
-  const account = result.data;
+  const handleDeactivate = async () => {
+    try {
+      await deactivate(id);
+      if (onSuccess) { onSuccess(); } else { router.replace('/cuentas'); }
+    } catch {
+      // error shown via deactivateError
+    }
+  };
 
-  return <EditAccountFormInner account={account} />;
-}
+  if (is_loading) {
+    return <div className="flex justify-center py-10"><LoadingSpinner size="lg" /></div>;
+  }
 
-function EditAccountFormInner({ account }: { account: import('@/models').Account }) {
-  const { form, error, is_loading, onSubmit } = useEditAccount(account);
-  const { register, formState: { errors } } = form;
-  const { showConfirm, setShowConfirm, deactivating, deactivateError, deactivate } = useDeactivateAccount(account);
+  if (error) return <ErrorAlert message={error} />;
+  if (!account) return null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,7 +88,7 @@ function EditAccountFormInner({ account }: { account: import('@/models').Account
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <ErrorAlert message={error} />
+        <ErrorAlert message={updateError} />
 
         <Input
           {...register('holder_name')}
@@ -77,12 +110,10 @@ function EditAccountFormInner({ account }: { account: import('@/models').Account
         </Select>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/cuentas">
-            <Button type="button" variant="secondary" disabled={is_loading}>
-              Cancelar
-            </Button>
-          </Link>
-          <Button type="submit" isLoading={is_loading}>
+          <Button type="button" variant="secondary" disabled={isSubmitting || updating} onClick={() => onClose ? onClose() : router.replace('/cuentas')}>
+            Cancelar
+          </Button>
+          <Button type="submit" isLoading={isSubmitting || updating}>
             Guardar cambios
           </Button>
         </div>
@@ -94,7 +125,7 @@ function EditAccountFormInner({ account }: { account: import('@/models').Account
           {showConfirm ? (
             <div className="flex items-center gap-3">
               <p className="text-sm text-gray-700">¿Desactivar esta cuenta?</p>
-              <Button size="sm" variant="danger" isLoading={deactivating} onClick={deactivate}>
+              <Button size="sm" variant="danger" isLoading={deactivating} onClick={handleDeactivate}>
                 Sí, desactivar
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setShowConfirm(false)}>
@@ -112,6 +143,7 @@ function EditAccountFormInner({ account }: { account: import('@/models').Account
           )}
         </div>
       )}
+
     </div>
   );
 }

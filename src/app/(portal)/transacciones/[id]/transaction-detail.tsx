@@ -1,12 +1,16 @@
 'use client';
 
-import { use, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
-import { useUpdateStatus, fetchTransactionDetail, fetchAuditLogs } from './use-transaction-detail';
-import type { TransactionDetailResult, AuditLogsResult } from './use-transaction-detail';
-import type { TransactionStatus, TransactionType } from '@/models';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import {
+  useTransaction,
+  useAuditLogs,
+  useUpdateTransactionStatus,
+} from '@/hooks/transactions/use-transactions';
+import type { AuditLog, TransactionStatus, TransactionType } from '@/sdk';
 
 const STATUS_LABEL: Record<TransactionStatus, string> = {
   Pending:   'Pendiente',
@@ -30,43 +34,36 @@ function formatDate(iso: string) {
   });
 }
 
-interface TransactionDetailProps {
-  txPromise:   Promise<TransactionDetailResult>;
-  logsPromise: Promise<AuditLogsResult>;
-}
+export function TransactionDetail({ id }: { id: string }) {
+  const { transaction, is_loading, error, refresh: refreshTx } = useTransaction(id);
+  const { logs, is_loading: logsLoading, error: logsError, refresh: refreshLogs } = useAuditLogs(id);
+  const { updateStatus, is_loading: isPending, error: statusError } = useUpdateTransactionStatus(id);
 
-export function TransactionDetail({ txPromise, logsPromise }: TransactionDetailProps) {
-  const txResult = use(txPromise);
+  const [confirmAction, setConfirmAction] = useState<'Completed' | 'Rejected' | null>(null);
 
-  if (!txResult.ok) return <ErrorAlert message={txResult.error} />;
-
-  return <TransactionDetailInner transaction={txResult.data} logsPromise={logsPromise} />;
-}
-
-function TransactionDetailInner({
-  transaction,
-  logsPromise,
-}: {
-  transaction: import('@/models').Transaction;
-  logsPromise: Promise<AuditLogsResult>;
-}) {
-  const [txPromise, setTxPromise] = useState<Promise<TransactionDetailResult>>(
-    () => Promise.resolve({ ok: true as const, data: transaction }),
-  );
-  const refreshedTx = use(txPromise);
-  const tx = refreshedTx.ok ? refreshedTx.data : transaction;
-
-  const [auditPromise, setAuditPromise] = useState(() => logsPromise);
-
-  const onSuccess = () => {
-    setTxPromise(fetchTransactionDetail(transaction.id));
-    setAuditPromise(fetchAuditLogs(transaction.id));
+  const confirm = async () => {
+    if (!confirmAction) return;
+    try {
+      await updateStatus(confirmAction);
+      setConfirmAction(null);
+      refreshTx();
+      refreshLogs();
+    } catch {
+      setConfirmAction(null);
+    }
   };
 
-  const { isPending, error, confirmAction, setConfirmAction, confirm } = useUpdateStatus(tx, onSuccess);
+  if (is_loading && !transaction) {
+    return <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>;
+  }
+
+  if (error) return <ErrorAlert message={error} />;
+  if (!transaction) return null;
+
+  const tx = transaction;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={['flex flex-col gap-6 transition-opacity', is_loading ? 'opacity-60' : ''].join(' ')}>
 
       <div className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -109,7 +106,7 @@ function TransactionDetailInner({
       {tx.status === 'Pending' && (
         <div className="rounded-lg border border-gray-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-700">Acciones</h3>
-          <ErrorAlert message={error} />
+          <ErrorAlert message={statusError} />
           {confirmAction ? (
             <div className="flex items-center gap-3">
               <p className="text-sm text-gray-700">
@@ -140,40 +137,35 @@ function TransactionDetailInner({
         </div>
       )}
 
-      <AuditLogSection logsPromise={auditPromise} />
-    </div>
-  );
-}
+      <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <h3 className="mb-3 text-sm font-semibold text-gray-700">Historial de cambios</h3>
+        {logsLoading && logs.length === 0 ? (
+          <div className="flex justify-center py-4"><LoadingSpinner /></div>
+        ) : logsError ? (
+          <ErrorAlert message={logsError} />
+        ) : logs.length === 0 ? (
+          <p className="text-sm text-gray-500">Sin registros de auditoría.</p>
+        ) : (
+          <ol className="flex flex-col gap-3">
+            {logs.map((log: AuditLog) => (
+              <li key={log.id} className="flex items-start gap-3 text-sm">
+                <span className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
+                <div>
+                  <span className="text-gray-700">
+                    <Badge variant={STATUS_VARIANT[log.previous_status]}>{STATUS_LABEL[log.previous_status]}</Badge>
+                    {' → '}
+                    <Badge variant={STATUS_VARIANT[log.new_status]}>{STATUS_LABEL[log.new_status]}</Badge>
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    {log.performed_by} · {formatDate(log.timestamp)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
 
-function AuditLogSection({ logsPromise }: { logsPromise: Promise<AuditLogsResult> }) {
-  const result = use(logsPromise);
-
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Historial de cambios</h3>
-      {!result.ok ? (
-        <ErrorAlert message={result.error} />
-      ) : result.data.length === 0 ? (
-        <p className="text-sm text-gray-500">Sin registros de auditoría.</p>
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {result.data.map((log) => (
-            <li key={log.id} className="flex items-start gap-3 text-sm">
-              <span className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
-              <div>
-                <span className="text-gray-700">
-                  <Badge variant={STATUS_VARIANT[log.previous_status]}>{STATUS_LABEL[log.previous_status]}</Badge>
-                  {' → '}
-                  <Badge variant={STATUS_VARIANT[log.new_status]}>{STATUS_LABEL[log.new_status]}</Badge>
-                </span>
-                <p className="text-xs text-gray-500">
-                  {log.performed_by} · {formatDate(log.timestamp)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
     </div>
   );
 }

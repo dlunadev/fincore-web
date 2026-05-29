@@ -29,10 +29,11 @@ export class TransactionHttpAdapter implements ITransactionPort {
   }
 
   updateStatus(id: string, status: UpdateTransactionStatus): Promise<Transaction> {
-    return this.http.patch<Transaction>(`/api/transactions/${id}/status`, { status });
+    const action = status === 'Completed' ? 'complete' : 'reject';
+    return this.http.patch<Transaction>(`/api/transactions/${id}/${action}`);
   }
 
   getAuditLogs(id: string): Promise<AuditLog[]> {
-    return this.http.get<AuditLog[]>(`/api/transactions/${id}/audit-logs`);
+    return this.http.get<AuditLog[]>(`/api/transactions/${id}/audit`);
   }
 }

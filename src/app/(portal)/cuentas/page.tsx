@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import Link from 'next/link';
 import { useAccountsList, useDeactivateAccount } from '@/hooks/accounts/use-accounts';
 import { AccountSearch } from './account-search';
 import { AccountsTable } from './accounts-table';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
+import { Dialog } from '@/components/ui/dialog';
+import { CreateAccountForm } from './nueva/create-account-form';
+import { EditAccountForm } from './[id]/edit-account-form';
 
 export default function CuentasPage() {
   const [search, setSearch]       = useState('');
   const [query, setQuery]         = useState('');
   const [page, setPage]           = useState(1);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [showNew, setShowNew]     = useState(false);
+  const [editId, setEditId]       = useState<string | null>(null);
   const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { accounts, total, total_pages, is_loading, error, refresh } =
@@ -30,10 +34,6 @@ export default function CuentasPage() {
     }, 400);
   }, []);
 
-  const handlePage = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
-
   const handleConfirm = async () => {
     if (!confirmId) return;
     await deactivate(confirmId);
@@ -46,9 +46,7 @@ export default function CuentasPage() {
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Cuentas</h1>
-        <Link href="/cuentas/nueva">
-          <Button size="sm">+ Nueva cuenta</Button>
-        </Link>
+        <Button size="sm" onClick={() => setShowNew(true)}>+ Nueva cuenta</Button>
       </div>
 
       <AccountSearch value={search} onChange={handleSearch} />
@@ -64,11 +62,29 @@ export default function CuentasPage() {
         confirmId={confirmId}
         deactivating={deactivating}
         deactivateError={deactivateError}
-        onPage={handlePage}
+        onPage={setPage}
+        onEdit={setEditId}
         onDeactivate={setConfirmId}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmId(null)}
       />
+
+      <Dialog open={showNew} title="Nueva cuenta" onClose={() => setShowNew(false)}>
+        <CreateAccountForm
+          onSuccess={() => { setShowNew(false); refresh(); }}
+          onCancel={() => setShowNew(false)}
+        />
+      </Dialog>
+
+      <Dialog open={!!editId} title="Editar cuenta" onClose={() => setEditId(null)}>
+        {editId && (
+          <EditAccountForm
+            id={editId}
+            onClose={() => setEditId(null)}
+            onSuccess={() => { setEditId(null); refresh(); }}
+          />
+        )}
+      </Dialog>
 
     </div>
   );

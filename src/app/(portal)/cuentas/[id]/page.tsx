@@ -1,14 +1,11 @@
 'use client';
 
+import { use } from 'react';
 import Link from 'next/link';
-import { Suspense, useState } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EditAccountForm } from './edit-account-form';
-import { fetchAccount } from './use-edit-account';
-import type { AccountDetailResult } from './use-edit-account';
 
-export default function EditAccountPage({ params }: { params: { id: string } }) {
-  const [promise] = useState<Promise<AccountDetailResult>>(() => fetchAccount(params.id));
+export default function EditAccountPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
 
   return (
     <div className="mx-auto max-w-lg">
@@ -22,9 +19,7 @@ export default function EditAccountPage({ params }: { params: { id: string } }) 
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <Suspense fallback={<div className="flex justify-center py-10"><LoadingSpinner size="lg" /></div>}>
-          <EditAccountForm promise={promise} />
-        </Suspense>
+        <EditAccountForm id={id} />
       </div>
 
     </div>

@@ -1,15 +1,11 @@
 'use client';
 
+import { use } from 'react';
 import Link from 'next/link';
-import { Suspense, useState } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { TransactionDetail } from './transaction-detail';
-import { fetchTransactionDetail, fetchAuditLogs } from './use-transaction-detail';
-import type { TransactionDetailResult, AuditLogsResult } from './use-transaction-detail';
 
-export default function TransactionDetailPage({ params }: { params: { id: string } }) {
-  const [txPromise]   = useState<Promise<TransactionDetailResult>>(() => fetchTransactionDetail(params.id));
-  const [logsPromise] = useState<Promise<AuditLogsResult>>(() => fetchAuditLogs(params.id));
+export default function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -22,9 +18,7 @@ export default function TransactionDetailPage({ params }: { params: { id: string
         <h1 className="text-2xl font-bold text-gray-900">Detalle</h1>
       </div>
 
-      <Suspense fallback={<div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>}>
-        <TransactionDetail txPromise={txPromise} logsPromise={logsPromise} />
-      </Suspense>
+      <TransactionDetail id={id} />
 
     </div>
   );

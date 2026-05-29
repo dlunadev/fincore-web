@@ -80,7 +80,7 @@ export function useUpdateTransactionStatus(id: string) {
 
 // ── Audit logs ───────────────────────────────────────────────────
 export function useAuditLogs(transactionId: string) {
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     AUDIT_LOGS_KEY(transactionId),
     () => fincore.transactions.getAuditLogs.execute(transactionId),
   );
@@ -89,5 +89,6 @@ export function useAuditLogs(transactionId: string) {
     logs:       data ?? [],
     is_loading: isLoading,
     error:      error?.message ?? null,
+    refresh:    () => mutate(),
   };
 }

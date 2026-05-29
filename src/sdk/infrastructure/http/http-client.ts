@@ -52,11 +52,13 @@ export class HttpClient {
   }
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
-    return fetch(`${this.baseUrl}${path}`, init)
-      .catch(() => {
-        throw new SdkError('No se pudo conectar al servidor. Verificá tu conexión.', 0);
-      })
-      .then((r) => this.handleResponse<T>(r));
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, init);
+    } catch {
+      throw new SdkError('No se pudo conectar al servidor. Verificá tu conexión a internet o intentá más tarde.', 0);
+    }
+    return this.handleResponse<T>(res);
   }
 
   get<T>(path: string): Promise<T> {

@@ -1,15 +1,33 @@
 'use client';
 
-import { Suspense } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useTransactions } from './use-transactions';
+import { useTransactionsList } from '@/hooks/transactions/use-transactions';
 import { TransactionFilters } from './transaction-filters';
 import { TransactionsTable } from './transactions-table';
 import { Button } from '@/components/ui/button';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import type { TransactionStatus, TransactionType } from '@/sdk';
 
 export default function TransaccionesPage() {
-  const vm = useTransactions();
+  const [status, setStatus] = useState<TransactionStatus | ''>('');
+  const [type, setType]     = useState<TransactionType | ''>('');
+  const [page, setPage]     = useState(1);
+
+  const { transactions, total, total_pages, is_loading, error } = useTransactionsList({
+    status:    status   || undefined,
+    type:      type     || undefined,
+    page,
+  });
+
+  const handleStatus = (value: string) => {
+    setStatus(value as TransactionStatus | '');
+    setPage(1);
+  };
+
+  const handleType = (value: string) => {
+    setType(value as TransactionType | '');
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,20 +40,21 @@ export default function TransaccionesPage() {
       </div>
 
       <TransactionFilters
-        status={vm.status}
-        type={vm.type}
-        onStatus={vm.handleStatus}
-        onType={vm.handleType}
+        status={status}
+        type={type}
+        onStatus={handleStatus}
+        onType={handleType}
       />
 
-      <Suspense fallback={<div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>}>
-        <TransactionsTable
-          promise={vm.promise}
-          is_pending={vm.is_pending}
-          page={vm.page}
-          onPage={vm.handlePage}
-        />
-      </Suspense>
+      <TransactionsTable
+        transactions={transactions}
+        total={total}
+        total_pages={total_pages}
+        page={page}
+        is_loading={is_loading}
+        error={error}
+        onPage={setPage}
+      />
 
     </div>
   );

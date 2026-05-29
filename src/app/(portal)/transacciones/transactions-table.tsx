@@ -1,18 +1,20 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { Pagination } from '@/components/ui/pagination';
-import type { TransactionsResult } from './use-transactions';
-import type { TransactionStatus, TransactionType } from '@/models';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import type { Transaction, TransactionStatus, TransactionType } from '@/sdk';
 
 interface TransactionsTableProps {
-  promise:    Promise<TransactionsResult>;
-  is_pending: boolean;
-  page:       number;
-  onPage:     (page: number) => void;
+  transactions:  Transaction[];
+  total:         number;
+  total_pages:   number;
+  page:          number;
+  is_loading:    boolean;
+  error:         string | null;
+  onPage:        (page: number) => void;
 }
 
 const STATUS_LABEL: Record<TransactionStatus, string> = {
@@ -40,15 +42,15 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function TransactionsTable({ promise, is_pending, page, onPage }: TransactionsTableProps) {
-  const result = use(promise);
-
-  if (!result.ok) return <ErrorAlert message={result.error} />;
-
-  const { data: transactions, total, total_pages } = result.data;
+export function TransactionsTable({ transactions, total, total_pages, page, is_loading, error, onPage }: TransactionsTableProps) {
+  if (is_loading && transactions.length === 0) {
+    return <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>;
+  }
 
   return (
-    <div className={['flex flex-col gap-4 transition-opacity', is_pending ? 'opacity-60' : ''].join(' ')}>
+    <div className={['flex flex-col gap-4 transition-opacity', is_loading ? 'opacity-60' : ''].join(' ')}>
+      <ErrorAlert message={error} />
+
       {transactions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-16 text-center">
           <p className="text-sm text-gray-500">No se encontraron transacciones.</p>
